@@ -1,0 +1,6 @@
+---
+
+- name:  Heat validation
+  hosts: localhost
+  roles:
+    - heat-validation

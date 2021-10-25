@@ -1,0 +1,115 @@
+---
+
+- name: Check if image in Glance exists
+  shell: |
+    source {{ heat_validation_rc }}
+    openstack image show \
+      --format value \
+      --column "id" \
+      {{ heat_validation_image_name }}
+  changed_when: false
+  failed_when: false
+  register: heat_validation_image_id_check
+
+- name: Set Glance image id
+  set_fact:
+    heat_validation_image_id: "{{ heat_validation_image_id_check.stdout }}"
+
+- block:
+    - name: Download and uncompress (if necessary) image file for Heat
+      shell: |
+        image_url="{{ heat_validation_instance_image_location }}"
+        image_file=$(basename $image_url)
+    
+        #curl -s -o $image_file $image_url
+        wget $image_url -O $image_file
+    
+        case "$image_file" in
+           *.tar)
+               image_name=$(tar xvf $image_file)
+               ;;
+           *.tar.gz|*.tgz)
+               image_name=$(tar xzvf $image_file)
+               ;;
+           *.tar.bz2|*.tbz2)
+               image_name=$(tar xjvf $image_file)
+               ;;
+           *.tar.xz|*.txz)
+               image_name=$(tar xJf $image_file)
+               ;;
+           *.bz2)
+               bunzip2 --force --quiet $image_file
+               image_name=${image_file%.*};
+               ;;
+           *.gz)
+               gunzip --force --quiet $image_file
+               image_name=${image_file%.*};
+               ;;
+           *.xz)
+               xz --force --quiet --decompress $image_file
+               image_name=${image_file%.*};
+               ;;
+           *) image_name=$image_file
+              ;;
+        esac
+    
+        echo $image_name
+      args:
+        chdir: "{{ heat_validation_work_dir }}"
+      register: heat_validation_image_file_name_stdout
+    
+    - set_fact:
+        heat_validation_image_file_name: "{{ heat_validation_image_file_name_stdout.stdout }}"    
+    
+    - name: Load image in Glance to be used by Heat
+      shell: |
+        source {{ heat_validation_rc }}
+        openstack image create \
+          --disk-format {{ heat_validation_instance_image_format }} \
+          --file {{ heat_validation_work_dir }}/{{ heat_validation_image_file_name }} \
+          --format value \
+          --column "id" \
+          {{ heat_validation_image_name }} 2> \
+          {{ heat_validation_logs_dir }}/image-create.log
+      register: heat_validation_new_image_id_create
+
+    - name: Set Glance new image id
+      set_fact:
+        heat_validation_image_id: "{{ heat_validation_new_image_id_create.stdout }}"
+
+  when:
+    - heat_validation_image_id_check.rc != 0
+
+- name: Create the Heat environment template
+  template:
+    src: "{{ heat_validation_environment }}"
+    dest: "{{ heat_validation_work_dir }}/validate-ha-heat-environment.yaml"
+    mode: 0600
+
+- name: Create the Heat template
+  template:
+    src: "{{ heat_validation_template }}"
+    dest: "{{ heat_validation_work_dir }}/validate-ha-heat-template.yaml"
+    mode: 0600
+
+- include_tasks: heat-validation-create.yml
+
+- include_tasks: heat-validation-check.yml
+
+- include_tasks: heat-validation-delete.yml
+
+- block:
+    - name: Remove image file
+      file:
+         path: "{{ heat_validation_work_dir }}/{{ heat_validation_image_file_name }}"
+         state: absent
+      when:
+        - heat_validation_image_id_check.rc != 0
+
+    - name: Clean image in Glance
+      shell: |
+        source {{ heat_validation_rc }}
+        openstack image delete {{ heat_validation_image_id }} > \
+        {{ heat_validation_logs_dir }}/image-delete.log 2>&1
+  when:
+    - heat_validation_cleanup | bool

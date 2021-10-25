@@ -1,0 +1,10 @@
+---
+
+- name: Clean the created stack
+  shell: |
+    source {{ heat_validation_rc }}
+    openstack stack delete \
+      --yes \
+      --wait \
+      {{ heat_validation_stack_name }} > \
+      {{ heat_validation_logs_dir }}/heat-delete.log 2>&1

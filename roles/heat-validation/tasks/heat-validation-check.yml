@@ -1,0 +1,15 @@
+---
+
+- name: Get instance IP
+  shell: |
+    source {{ heat_validation_rc }}
+    openstack stack show -c outputs -f json {{ heat_validation_stack_name }} | \
+      jq --raw-output '.outputs[] | select( .output_key == "server_public_ip") | .output_value' 2>&1 | \
+      tee {{ heat_validation_logs_dir }}/heat-instance-ip.log
+  register: "instance_ip"
+
+- name: Wait up to five minutes for the instance to be reachable
+  wait_for:
+    host: "{{ instance_ip.stdout }}"
+    port: 22
+    timeout: 300

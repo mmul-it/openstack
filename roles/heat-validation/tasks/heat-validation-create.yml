@@ -1,0 +1,11 @@
+---
+
+- name: Execute environment validation via Heat
+  shell: |
+    source {{ heat_validation_rc }}
+    openstack stack create \
+      --environment {{ heat_validation_work_dir }}/validate-ha-heat-environment.yaml \
+      --template {{ heat_validation_work_dir }}/validate-ha-heat-template.yaml \
+      --wait \
+      {{ heat_validation_stack_name }} > \
+      {{ heat_validation_logs_dir }}/heat-create.log 2>&1

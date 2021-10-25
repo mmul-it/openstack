@@ -1,0 +1,27 @@
+---
+
+heat_validation_rc: "/etc/openstack/admin-openrc.sh"
+heat_validation_work_dir: "./workdir"
+heat_validation_logs_dir: "{{ heat_validation_work_dir }}/logs"
+heat_validation_environment: "heat-validation-environment.yaml.j2"
+heat_validation_template: "heat-validation-template.yaml.j2"
+
+heat_validation_stack_name: 'openstack_heat_validation'
+heat_validation_use_cinder: true
+heat_validation_image_name: "heat-validation-cirros-0.5.2"
+heat_validation_instance_image_format: "raw"
+heat_validation_instance_image_location: "http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img"
+heat_validation_instance_volume_gb: 1
+heat_validation_cleanup: true
+
+heat_validation_private_net_name: "private-network"
+heat_validation_private_subnet_name: "private-subnet"
+heat_validation_private_net_cidr: "192.168.1.0/24"
+heat_validation_public_net_type: "flat"
+heat_validation_public_net_name: "public-network"
+heat_validation_public_subnet_name: "public-subnet"
+heat_validation_public_physical_network: "physnet1"
+heat_validation_public_net_cidr: "10.0.0.0/24"
+heat_validation_public_net_pool_start: "10.0.0.10"
+heat_validation_public_net_pool_end: "10.0.0.20"
+heat_validation_public_net_gateway: "10.0.0.254"
