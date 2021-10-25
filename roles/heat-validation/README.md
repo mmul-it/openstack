@@ -115,7 +115,7 @@ License
 
 MIT
 
-Author Information
+Author
 ------------------
 
 Raoul Scarazzini <rasca@mmul.it>
